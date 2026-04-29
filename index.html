@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abrar Tasnim Washi — Mechanical Engineer & CFD Researcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,400;0,9..144,600;1,9..144,200;1,9..144,400&family=Space+Grotesk:wght@300;400;500;600&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════
+   TOKENS
+═══════════════════════════════════ */
+:root {
+  --c-bg:       #08090d;
+  --c-bg2:      #0e101a;
+  --c-bg3:      #13162200;
+  --c-panel:    #111420;
+  --c-border:   rgba(255,255,255,0.07);
+  --c-border2:  rgba(255,255,255,0.12);
+  --c-text:     #dde3f0;
+  --c-muted:    #6a788f;
+  --c-dim:      #2e3850;
+  --c-teal:     #3fffc8;
+  --c-blue:     #5c9bff;
+  --c-amber:    #ffca4a;
+  --c-pink:     #f06aff;
+  --c-teal-glow: rgba(63,255,200,0.08);
+  --c-blue-glow: rgba(92,155,255,0.08);
+  --ease-out:   cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ═══════════════════════════════════
+   RESET + BASE
+═══════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; font-size: 16px; }
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 300;
+  line-height: 1.65;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ═══════════════════════════════════
+   CURSOR
+═══════════════════════════════════ */
+#cur-dot {
+  position: fixed; width: 8px; height: 8px;
+  background: var(--c-teal); border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: width .15s, height .15s, opacity .2s;
+  mix-blend-mode: difference;
+}
+#cur-ring {
+  position: fixed; width: 34px; height: 34px;
+  border: 1px solid rgba(63,255,200,.35); border-radius: 50%;
+  pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: width .2s var(--ease-out), height .2s var(--ease-out), border-color .2s;
+}
+body.hovering #cur-dot  { width: 14px; height: 14px; }
+body.hovering #cur-ring { width: 52px; height: 52px; border-color: rgba(63,255,200,.6); }
+
+/* ═══════════════════════════════════
+   BACKGROUND LAYERS
+═══════════════════════════════════ */
+#bg-canvas {
+  position: fixed; inset: 0;
+  z-index: 0; pointer-events: none;
+}
+.noise-layer {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+.grid-layer {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(63,255,200,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(63,255,200,.018) 1px, transparent 1px);
+  background-size: 70px 70px;
+}
+
+/* ═══════════════════════════════════
+   NAV
+═══════════════════════════════════ */
+#nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.1rem 5vw;
+  transition: background .4s, border-color .4s, padding .3s;
+}
+#nav.stuck {
+  background: rgba(8,9,13,.92);
+  backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 1px solid var(--c-border);
+  padding: .85rem 5vw;
+}
+.nav-brand {
+  font-family: 'Fira Code', monospace;
+  font-size: .7rem; color: var(--c-teal);
+  letter-spacing: .28em; text-transform: uppercase;
+}
+.nav-links { display: flex; gap: 2.5rem; list-style: none; }
+.nav-links a {
+  font-family: 'Fira Code', monospace;
+  font-size: .65rem; color: var(--c-muted);
+  text-decoration: none; letter-spacing: .18em; text-transform: uppercase;
+  position: relative; transition: color .3s;
+}
+.nav-links a::after {
+  content: ''; position: absolute;
+  bottom: -3px; left: 0; right: 0; height: 1px;
+  background: var(--c-teal);
+  transform: scaleX(0); transition: transform .3s; transform-origin: left;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--c-teal); }
+.nav-links a:hover::after, .nav-links a.active::after { transform: scaleX(1); }
+
+/* ═══════════════════════════════════
+   SECTION SHARED
+═══════════════════════════════════ */
+section { position: relative; z-index: 2; padding: 7rem 5vw; }
+.sec-row {
+  display: flex; align-items: center; gap: 1rem;
+  margin-bottom: .6rem;
+}
+.sec-index {
+  font-family: 'Fira Code', monospace;
+  font-size: .62rem; color: var(--c-dim); letter-spacing: .2em;
+}
+.sec-tick { width: 36px; height: 1px; background: var(--c-teal); }
+.sec-label {
+  font-family: 'Fira Code', monospace;
+  font-size: .62rem; color: var(--c-teal); letter-spacing: .22em; text-transform: uppercase;
+}
+h2 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-weight: 200; line-height: 1.1;
+  margin-bottom: 3.5rem;
+}
+h2 em { color: var(--c-teal); font-style: italic; }
+
+/* SCROLL REVEAL */
+.sr {
+  opacity: 0; transform: translateY(36px);
+  transition: opacity .85s var(--ease-out), transform .85s var(--ease-out);
+}
+.sr.in { opacity: 1; transform: translateY(0); }
+
+/* ═══════════════════════════════════
+   HERO
+═══════════════════════════════════ */
+#hero {
+  min-height: 100vh;
+  display: grid; grid-template-columns: 1fr 480px;
+  align-items: center; gap: 4rem;
+  padding: 5rem 5vw 4rem;
+}
+
+/* orbs */
+.orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(140px); opacity: .07; pointer-events: none;
+}
+.orb1 { width: 700px; height: 700px; background: var(--c-teal);   top: -150px; right: -80px;  animation: orb1float 9s ease-in-out infinite; }
+.orb2 { width: 500px; height: 500px; background: var(--c-blue);   bottom:-80px; left: -80px;  animation: orb2float 11s ease-in-out infinite; }
+.orb3 { width: 280px; height: 280px; background: var(--c-pink);   top: 45%; right: 38%;       animation: orb3float 7s ease-in-out infinite; }
+@keyframes orb1float { 0%,100%{transform:translate(0,0) scale(1);}   50%{transform:translate(-30px,25px) scale(1.08);} }
+@keyframes orb2float { 0%,100%{transform:translate(0,0);}            50%{transform:translate(20px,-20px) scale(1.1);} }
+@keyframes orb3float { 0%,100%{transform:scale(1);}                  50%{transform:scale(1.18);} }
+
+/* hero left */
+.hero-left { position: relative; z-index: 2; }
+
+.hero-pill {
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding: .38rem 1rem;
+  border: 1px solid rgba(63,255,200,.18);
+  background: rgba(63,255,200,.05);
+  border-radius: 100px;
+  font-family: 'Fira Code', monospace;
+  font-size: .62rem; color: var(--c-teal); letter-spacing: .18em;
+  margin-bottom: 1.8rem;
+  opacity: 0; animation: fadein .7s .2s forwards;
+}
+.pill-dot {
+  width: 6px; height: 6px; background: var(--c-teal);
+  border-radius: 50%; animation: blink 1.6s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.15;} }
+
+.hero-name {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(3.2rem, 7vw, 6rem);
+  font-weight: 200; line-height: 1.0;
+  letter-spacing: -.01em;
+  opacity: 0; animation: slideup .8s .35s forwards;
+}
+.hero-name .hl { color: var(--c-teal); font-style: italic; display: block; }
+
+.hero-typeline {
+  font-family: 'Fira Code', monospace;
+  font-size: .92rem; color: var(--c-muted);
+  margin: 1.1rem 0 1.6rem;
+  opacity: 0; animation: slideup .8s .55s forwards;
+}
+#typed-el { color: var(--c-blue); }
+.caret {
+  display: inline-block; width: 2px; height: 1em;
+  background: var(--c-blue); vertical-align: middle;
+  margin-left: 2px; animation: blink .85s infinite;
+}
+
+.hero-bio {
+  font-size: 1rem; color: var(--c-muted);
+  max-width: 520px; line-height: 1.88;
+  margin-bottom: 2.4rem;
+  opacity: 0; animation: slideup .8s .75s forwards;
+}
+
+.hero-btns {
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  opacity: 0; animation: slideup .8s .95s forwards;
+}
+.btn-teal {
+  padding: .82rem 2rem;
+  background: var(--c-teal); color: #060810;
+  font-family: 'Fira Code', monospace;
+  font-size: .68rem; letter-spacing: .15em; text-transform: uppercase;
+  text-decoration: none; border: none; cursor: none;
+  clip-path: polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  transition: filter .25s, transform .25s, box-shadow .25s;
+}
+.btn-teal:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(63,255,200,.35);
+}
+.btn-ghost {
+  padding: .82rem 2rem;
+  background: transparent; color: var(--c-text);
+  font-family: 'Fira Code', monospace;
+  font-size: .68rem; letter-spacing: .15em; text-transform: uppercase;
+  text-decoration: none;
+  border: 1px solid var(--c-border2);
+  transition: border-color .25s, color .25s, transform .25s;
+}
+.btn-ghost:hover { border-color: var(--c-teal); color: var(--c-teal); transform: translateY(-2px); }
+
+/* hero right – PHOTO */
+.hero-right {
+  position: relative; z-index: 2;
+  display: flex; justify-content: center; align-items: center;
+  opacity: 0; animation: fadein 1s .7s forwards;
+}
+.photo-wrap {
+  position: relative; width: 360px; height: 460px;
+}
+.photo-ring {
+  position: absolute; inset: -3px; border-radius: 6px; z-index: 0;
+  background: conic-gradient(from 0deg,var(--c-teal),var(--c-blue),var(--c-pink),var(--c-amber),var(--c-teal));
+  animation: spinring 6s linear infinite;
+}
+@keyframes spinring { to { transform: rotate(360deg); } }
+.photo-mat {
+  position: absolute; inset: 3px; border-radius: 4px; overflow: hidden; z-index: 1;
+  background: var(--c-panel);
+}
+.photo-mat img {
+  width: 100%; height: 100%;
+  object-fit: cover; object-position: top center;
+  filter: saturate(.9) contrast(1.05);
+}
+.photo-sticker {
+  position: absolute; z-index: 3;
+  font-family: 'Fira Code', monospace; font-size: .56rem;
+  letter-spacing: .14em; text-transform: uppercase;
+  border: 1px solid var(--c-border2);
+  background: rgba(8,9,13,.95); padding: .32rem .75rem;
+}
+.ps-tl { top: -11px; left: 22px; color: var(--c-teal); }
+.ps-br { bottom: -11px; right: 22px; color: var(--c-blue); }
+
+.stat-chip {
+  position: absolute; z-index: 4;
+  background: rgba(11,13,22,.97);
+  border: 1px solid var(--c-border2);
+  padding: .95rem 1.25rem;
+  backdrop-filter: blur(12px);
+}
+.stat-chip.left  { left: -100px; top: 30%; }
+.stat-chip.right { right: -100px; bottom: 22%; }
+.sc-num {
+  font-family: 'Fraunces', serif; font-size: 2.1rem;
+  color: var(--c-teal); line-height: 1;
+}
+.sc-num sup { font-size: 1.1rem; }
+.sc-lbl {
+  font-family: 'Fira Code', monospace; font-size: .5rem;
+  color: var(--c-muted); letter-spacing: .14em; text-transform: uppercase;
+  margin-top: .18rem;
+}
+.float-tags {
+  position: absolute; top: 14px; right: -80px; z-index: 4;
+  display: flex; flex-direction: column; gap: .45rem;
+}
+.ft {
+  padding: .22rem .62rem;
+  border: 1px solid var(--c-border2);
+  background: rgba(8,9,13,.92);
+  font-family: 'Fira Code', monospace; font-size: .52rem;
+  color: var(--c-muted); letter-spacing: .08em;
+}
+.ft:nth-child(1) { animation: floaty 3.0s ease-in-out infinite; }
+.ft:nth-child(2) { animation: floaty 3.0s .5s ease-in-out infinite; }
+.ft:nth-child(3) { animation: floaty 3.0s 1s ease-in-out infinite; }
+@keyframes floaty { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+
+/* scroll indicator */
+.scroll-hint {
+  position: absolute; bottom: 2.5rem; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+  opacity: 0; animation: fadein 1s 2s forwards; z-index: 3;
+}
+.scroll-line {
+  width: 1px; height: 52px;
+  background: linear-gradient(to bottom, var(--c-teal), transparent);
+  animation: scrollpulse 2s ease-in-out infinite;
+}
+@keyframes scrollpulse { 0%,100%{opacity:1;transform:scaleY(1);} 50%{opacity:.3;transform:scaleY(.5);} }
+.scroll-txt {
+  font-family: 'Fira Code', monospace; font-size: .54rem;
+  color: var(--c-dim); letter-spacing: .2em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════
+   ABOUT
+═══════════════════════════════════ */
+#about { background: var(--c-bg2); }
+.about-grid {
+  display: grid; grid-template-columns: 1.3fr 1fr; gap: 5rem; align-items: start;
+}
+.about-p {
+  font-size: .97rem; color: var(--c-muted);
+  margin-bottom: 1.4rem; line-height: 1.9;
+}
+.about-p strong { color: var(--c-text); font-weight: 500; }
+
+.ri-head {
+  font-family: 'Fira Code', monospace; font-size: .6rem;
+  color: var(--c-teal); letter-spacing: .2em; text-transform: uppercase;
+  margin: 2rem 0 .85rem;
+}
+.tags { display: flex; flex-wrap: wrap; gap: .5rem; }
+.tag {
+  padding: .28rem .82rem;
+  border: 1px solid var(--c-border2);
+  font-family: 'Fira Code', monospace; font-size: .58rem;
+  color: var(--c-muted); letter-spacing: .07em;
+  transition: border-color .25s, color .25s, background .25s;
+  cursor: default;
+}
+.tag:hover { border-color: var(--c-teal); color: var(--c-teal); background: var(--c-teal-glow); }
+
+.info-card {
+  background: var(--c-panel);
+  border: 1px solid var(--c-border); overflow: hidden;
+}
+.ic-head {
+  padding: .95rem 1.7rem; border-bottom: 1px solid var(--c-border);
+  font-family: 'Fira Code', monospace; font-size: .58rem;
+  color: var(--c-teal); letter-spacing: .2em; text-transform: uppercase;
+  background: rgba(63,255,200,.03);
+}
+.ic-row {
+  display: grid; grid-template-columns: 22px 1fr;
+  gap: 1rem; align-items: center;
+  padding: .82rem 1.7rem; border-bottom: 1px solid var(--c-border);
+  transition: background .2s;
+}
+.ic-row:last-child { border-bottom: none; }
+.ic-row:hover { background: rgba(63,255,200,.03); }
+.ic-icon { font-size: .9rem; }
+.ic-k {
+  font-family: 'Fira Code', monospace; font-size: .52rem;
+  color: var(--c-dim); letter-spacing: .12em; text-transform: uppercase; margin-bottom: .1rem;
+}
+.ic-v { font-size: .85rem; color: var(--c-text); }
+
+/* ═══════════════════════════════════
+   EDUCATION
+═══════════════════════════════════ */
+#education { background: var(--c-bg); }
+.edu-list { display: flex; flex-direction: column; gap: 1.4rem; }
+.edu-card {
+  display: grid; grid-template-columns: 100px 1fr;
+  border: 1px solid var(--c-border);
+  background: var(--c-panel); overflow: hidden;
+  position: relative;
+  transition: border-color .3s, transform .3s;
+}
+.edu-card:hover { border-color: var(--c-teal); transform: translateX(5px); }
+.edu-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(to bottom, var(--c-teal), var(--c-blue));
+  transform: scaleY(0); transform-origin: top; transition: transform .4s;
+}
+.edu-card:hover::before { transform: scaleY(1); }
+.edu-yr {
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.8rem .8rem; background: rgba(63,255,200,.03);
+  border-right: 1px solid var(--c-border);
+}
+.edu-yr-txt {
+  font-family: 'Fira Code', monospace; font-size: .57rem;
+  color: var(--c-muted); letter-spacing: .1em;
+  writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;
+}
+.edu-body { padding: 1.7rem 2.2rem; }
+.edu-degree {
+  font-family: 'Fraunces', serif; font-size: 1.45rem;
+  font-weight: 300; margin-bottom: .28rem;
+}
+.edu-school {
+  font-family: 'Fira Code', monospace; font-size: .62rem;
+  color: var(--c-teal); letter-spacing: .09em; margin-bottom: .75rem;
+}
+.edu-det { font-size: .87rem; color: var(--c-muted); line-height: 1.7; }
+.badges { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .85rem; }
+.badge {
+  padding: .18rem .65rem;
+  font-family: 'Fira Code', monospace; font-size: .52rem;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.badge-g { background: rgba(255,202,74,.07); border: 1px solid rgba(255,202,74,.25); color: var(--c-amber); }
+.badge-b { background: rgba(92,155,255,.07); border: 1px solid rgba(92,155,255,.25); color: var(--c-blue); }
+
+/* ═══════════════════════════════════
+   EXPERIENCE
+═══════════════════════════════════ */
+#experience { background: var(--c-bg2); }
+.exp-tl { position: relative; padding-left: 3rem; }
+.exp-tl::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(to bottom, var(--c-teal), var(--c-blue) 65%, transparent);
+}
+.exp-item { position: relative; margin-bottom: 4rem; }
+.exp-item:last-child { margin-bottom: 0; }
+.exp-node {
+  position: absolute; left: -3rem; top: .4rem;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--c-teal); border: 2px solid var(--c-bg2);
+  box-shadow: 0 0 14px var(--c-teal);
+  transform: translateX(-5px);
+}
+.exp-node.blue { background: var(--c-blue); box-shadow: 0 0 14px var(--c-blue); }
+.exp-period {
+  font-family: 'Fira Code', monospace; font-size: .6rem;
+  color: var(--c-teal); letter-spacing: .15em; margin-bottom: .45rem;
+}
+.exp-period.blue { color: var(--c-blue); }
+.exp-role {
+  font-family: 'Fraunces', serif; font-size: 1.55rem;
+  font-weight: 300; margin-bottom: .25rem;
+}
+.exp-co {
+  font-family: 'Fira Code', monospace; font-size: .62rem;
+  color: var(--c-muted); letter-spacing: .1em; margin-bottom: 1.1rem;
+}
+.exp-ul { list-style: none; }
+.exp-ul li {
+  position: relative; padding-left: 1.3rem;
+  font-size: .91rem; color: var(--c-muted);
+  margin-bottom: .52rem; line-height: 1.68;
+}
+.exp-ul li::before { content:'›'; position:absolute; left:0; color:var(--c-teal); font-size:1.1rem; }
+
+/* ═══════════════════════════════════
+   RESEARCH / PUBLICATIONS
+═══════════════════════════════════ */
+#research { background: var(--c-bg); }
+.pub-table { border: 1px solid var(--c-border); }
+.pub-row {
+  display: grid; grid-template-columns: 58px 1fr;
+  background: var(--c-panel);
+  border-bottom: 1px solid var(--c-border);
+  transition: background .22s;
+}
+.pub-row:last-child { border-bottom: none; }
+.pub-row:hover { background: rgba(63,255,200,.03); }
+.pub-idx {
+  display: flex; align-items: center; justify-content: center;
+  border-right: 1px solid var(--c-border);
+}
+.pub-idx-n {
+  font-family: 'Fraunces', serif; font-size: 2rem;
+  color: var(--c-dim); font-style: italic; line-height: 1;
+}
+.pub-body { padding: 1.3rem 1.8rem; }
+.pub-title {
+  font-size: .9rem; color: var(--c-text);
+  margin-bottom: .4rem; line-height: 1.55;
+}
+.pub-title strong { color: var(--c-teal); }
+.pub-venue {
+  font-family: 'Fira Code', monospace; font-size: .56rem;
+  color: var(--c-muted); letter-spacing: .07em;
+}
+.chip {
+  display: inline-block; margin-left: .7rem;
+  padding: .1rem .45rem; vertical-align: middle;
+  background: rgba(255,202,74,.07); border: 1px solid rgba(255,202,74,.22);
+  font-family: 'Fira Code', monospace; font-size: .5rem;
+  color: var(--c-amber); letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════
+   SKILLS
+═══════════════════════════════════ */
+#skills { background: var(--c-bg2); }
+.skills-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.4rem; }
+.skill-card {
+  background: var(--c-panel); border: 1px solid var(--c-border);
+  padding: 1.9rem;
+  position: relative; overflow: hidden;
+  transition: border-color .3s, transform .3s;
+}
+.skill-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 0 0, var(--c-teal-glow), transparent 65%);
+  opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.skill-card:hover { border-color: rgba(92,155,255,.4); transform: translateY(-4px); }
+.skill-card:hover::before { opacity: 1; }
+.sk-head {
+  font-family: 'Fira Code', monospace; font-size: .58rem;
+  color: var(--c-teal); letter-spacing: .2em; text-transform: uppercase;
+  margin-bottom: 1.4rem;
+}
+.sk-row {
+  display: flex; align-items: center; gap: .8rem; margin-bottom: .85rem;
+}
+.sk-name { font-size: .82rem; color: var(--c-muted); min-width: 126px; }
+.sk-track {
+  flex: 1; height: 2px; background: var(--c-dim); border-radius: 2px; overflow: hidden;
+}
+.sk-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-teal), var(--c-blue));
+  border-radius: 2px; width: 0;
+  transition: width 1.3s var(--ease-out);
+}
+
+/* ═══════════════════════════════════
+   LEADERSHIP
+═══════════════════════════════════ */
+#leadership { background: var(--c-bg); }
+.lead-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.3rem; }
+.lead-card {
+  background: var(--c-panel); border: 1px solid var(--c-border);
+  padding: 2rem 1.8rem; text-align: center;
+  transition: border-color .3s, transform .3s, box-shadow .3s;
+}
+.lead-card:hover {
+  border-color: rgba(92,155,255,.35);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.4);
+}
+.lead-icon { font-size: 1.8rem; margin-bottom: 1rem; }
+.lead-role {
+  font-family: 'Fraunces', serif; font-size: 1.1rem;
+  font-weight: 300; margin-bottom: .3rem;
+}
+.lead-org {
+  font-family: 'Fira Code', monospace; font-size: .58rem;
+  color: var(--c-muted); letter-spacing: .09em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════
+   CONTACT
+═══════════════════════════════════ */
+#contact { background: var(--c-bg2); text-align: center; }
+.con-head {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.6rem,5vw,4.5rem);
+  font-weight: 200; margin-bottom: .8rem; line-height: 1.05;
+}
+.con-head em { color: var(--c-teal); font-style: italic; }
+.con-sub {
+  font-family: 'Fira Code', monospace; font-size: .65rem;
+  color: var(--c-muted); letter-spacing: .15em; text-transform: uppercase;
+  margin-bottom: 3.5rem;
+}
+.con-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem;
+  max-width: 900px; margin: 0 auto 3.5rem;
+}
+.con-card {
+  background: var(--c-panel); border: 1px solid var(--c-border);
+  padding: 1.7rem 1.4rem; text-align: center;
+  text-decoration: none;
+  transition: border-color .3s, transform .3s, box-shadow .3s;
+  display: block;
+}
+.con-card:hover {
+  border-color: var(--c-teal); transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.3);
+}
+.con-icon { font-size: 1.4rem; margin-bottom: .75rem; display: block; }
+.con-lbl {
+  font-family: 'Fira Code', monospace; font-size: .54rem;
+  color: var(--c-teal); letter-spacing: .18em; text-transform: uppercase;
+  margin-bottom: .35rem;
+}
+.con-val { font-size: .8rem; color: var(--c-muted); }
+.ref-txt {
+  font-family: 'Fira Code', monospace; font-size: .56rem;
+  color: var(--c-dim); letter-spacing: .1em; line-height: 2.2;
+}
+
+/* ═══════════════════════════════════
+   FOOTER
+═══════════════════════════════════ */
+footer {
+  position: relative; z-index: 2;
+  background: var(--c-bg); border-top: 1px solid var(--c-border);
+  padding: 1.8rem 5vw;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.foot-l, .foot-r {
+  font-family: 'Fira Code', monospace; font-size: .56rem;
+  color: var(--c-dim); letter-spacing: .1em;
+}
+
+/* BACK TO TOP */
+#back-top {
+  position: fixed; bottom: 2rem; right: 2.2rem; z-index: 400;
+  width: 42px; height: 42px;
+  background: var(--c-panel); border: 1px solid var(--c-border2);
+  color: var(--c-teal); font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: none; opacity: 0; transform: translateY(10px);
+  transition: opacity .3s, transform .3s, background .25s;
+}
+#back-top.show { opacity: 1; transform: translateY(0); }
+#back-top:hover { background: var(--c-teal); color: var(--c-bg); }
+
+/* ═══════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════ */
+@keyframes fadein  { from{opacity:0;}              to{opacity:1;} }
+@keyframes slideup { from{opacity:0;transform:translateY(22px);} to{opacity:1;transform:translateY(0);} }
+
+/* ═══════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════ */
+@media (max-width: 1100px) {
+  #hero { grid-template-columns: 1fr; padding: 8rem 5vw 5rem; text-align: center; }
+  .hero-bio { margin-inline: auto; }
+  .hero-btns { justify-content: center; }
+  .hero-right { display: none; }
+  .about-grid { grid-template-columns: 1fr; gap: 3rem; }
+  .skills-grid { grid-template-columns: 1fr 1fr; }
+  .lead-grid { grid-template-columns: 1fr 1fr; }
+  .con-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 680px) {
+  .nav-links { display: none; }
+  .skills-grid { grid-template-columns: 1fr; }
+  .lead-grid { grid-template-columns: 1fr; }
+  .con-grid { grid-template-columns: 1fr; }
+  .edu-card { grid-template-columns: 1fr; }
+  .edu-yr { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- cursor -->
+<div id="cur-dot"></div>
+<div id="cur-ring"></div>
+
+<!-- bg noise + grid -->
+<canvas id="bg-canvas"></canvas>
+<div class="noise-layer"></div>
+<div class="grid-layer"></div>
+
+<!-- NAV ─────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-brand">ATW · Portfolio</div>
+  <ul class="nav-links">
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#education">Education</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO ─────────────────────────────── -->
+<section id="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <!-- LEFT -->
+  <div class="hero-left">
+    <div class="hero-pill"><span class="pill-dot"></span>Open to Opportunities</div>
+
+    <h1 class="hero-name">
+      Abrar Tasnim
+      <span class="hl">Washi</span>
+    </h1>
+
+    <div class="hero-typeline">
+      I'm a&nbsp;<span id="typed-el"></span><span class="caret"></span>
+    </div>
+
+    <p class="hero-bio">
+      Mechanical Engineering graduate from KUET with a CGPA of 3.55 and Dean's Award.
+      Specializing in Computational Fluid Dynamics, wind engineering, and AI model evaluation.
+      6 research papers accepted at ICMEAS 2025.
+    </p>
+
+    <div class="hero-btns">
+      <a href="#research" class="btn-teal">View Research</a>
+      <a href="https://amrito20.github.io/Abrar-Tasnim-Washi/assets/documents/Abrar_Tasnim_Washi_CV.pdf" target="_blank" class="btn-ghost">Download CV</a>
+      <a href="#contact" class="btn-ghost">Contact Me</a>
+    </div>
+  </div>
+
+  <!-- RIGHT / PHOTO -->
+  <div class="hero-right">
+    <div class="photo-wrap">
+      <div class="photo-ring"></div>
+      <div class="photo-mat">
+        <img
+          src="https://amrito20.github.io/Abrar-Tasnim-Washi/assets/images/wasi.png"
+          alt="Abrar Tasnim Washi"
+          loading="eager"
+        >
+      </div>
+      <div class="photo-sticker ps-tl">ME · KUET · CFD</div>
+      <div class="photo-sticker ps-br">ICMEAS 2025 · 6 Papers</div>
+    </div>
+
+    <div class="stat-chip left">
+      <div class="sc-num">3.55<sup>/4</sup></div>
+      <div class="sc-lbl">CGPA</div>
+    </div>
+    <div class="stat-chip right">
+      <div class="sc-num">6<sup>+</sup></div>
+      <div class="sc-lbl">Publications</div>
+    </div>
+
+    <div class="float-tags">
+      <div class="ft">ANSYS Fluent</div>
+      <div class="ft">CFD Research</div>
+      <div class="ft">SolidWorks</div>
+    </div>
+  </div>
+
+  <!-- scroll hint -->
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <div class="scroll-txt">scroll</div>
+  </div>
+</section>
+
+<!-- ABOUT ─────────────────────────────── -->
+<section id="about">
+  <div class="sec-row sr"><span class="sec-index">01</span><span class="sec-tick"></span><span class="sec-label">About Me</span></div>
+  <h2 class="sr">Who <em>I Am</em></h2>
+
+  <div class="about-grid">
+    <div>
+      <p class="about-p sr">I'm a <strong>Mechanical Engineering graduate</strong> from Khulna University of Engineering &amp; Technology (KUET), where I completed my thesis on the aerodynamic impact of tall buildings using Computational Fluid Dynamics.</p>
+      <p class="about-p sr">My work bridges <strong>classical engineering simulation</strong> and <strong>modern AI systems</strong>. At Scale AI, I applied domain expertise to evaluate LLM outputs — identifying hallucinations and reasoning failures, and providing structured RLHF feedback integrated into training pipelines.</p>
+      <p class="about-p sr">I believe rigorous engineering thinking — forged through fluid dynamics, thermodynamics, and numerical analysis — translates powerfully into evaluating and improving intelligent systems.</p>
+      <div class="ri-head sr">Research Interests</div>
+      <div class="tags sr">
+        <span class="tag">Computational Fluid Dynamics</span>
+        <span class="tag">Aerodynamics</span>
+        <span class="tag">Wind Engineering</span>
+        <span class="tag">Structural Analysis</span>
+        <span class="tag">Nanomaterials</span>
+        <span class="tag">Artificial Intelligence</span>
+        <span class="tag">Heat Transfer</span>
+        <span class="tag">Hemodynamics</span>
+      </div>
+    </div>
+
+    <div class="sr">
+      <div class="info-card">
+        <div class="ic-head">Personal Info</div>
+        <div class="ic-row"><span class="ic-icon">👤</span><div><div class="ic-k">Full Name</div><div class="ic-v">Abrar Tasnim Washi</div></div></div>
+        <div class="ic-row"><span class="ic-icon">🎓</span><div><div class="ic-k">Degree</div><div class="ic-v">B.Sc. Mechanical Engineering, KUET</div></div></div>
+        <div class="ic-row"><span class="ic-icon">📍</span><div><div class="ic-k">Location</div><div class="ic-v">Bara Moghbazar, Dhaka, Bangladesh</div></div></div>
+        <div class="ic-row"><span class="ic-icon">📧</span><div><div class="ic-k">Email</div><div class="ic-v">atwashi123@gmail.com</div></div></div>
+        <div class="ic-row"><span class="ic-icon">📱</span><div><div class="ic-k">Phone</div><div class="ic-v">+880 1781 455 008</div></div></div>
+        <div class="ic-row"><span class="ic-icon">💬</span><div><div class="ic-k">Languages</div><div class="ic-v">Bangla · English · Hindi</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EDUCATION ─────────────────────────── -->
+<section id="education">
+  <div class="sec-row sr"><span class="sec-index">02</span><span class="sec-tick"></span><span class="sec-label">Education</span></div>
+  <h2 class="sr">Academic <em>Background</em></h2>
+
+  <div class="edu-list">
+    <div class="edu-card sr">
+      <div class="edu-yr"><span class="edu-yr-txt">2019 – 2025</span></div>
+      <div class="edu-body">
+        <div class="edu-degree">B.Sc. in Mechanical Engineering</div>
+        <div class="edu-school">Khulna University of Engineering &amp; Technology (KUET) · Khulna, Bangladesh</div>
+        <div class="edu-det">
+          <strong style="color:var(--c-text)">CGPA: 3.55 / 4.00</strong><br>
+          Thesis: <em>Analyzing the Aerodynamic Impact of Tall Buildings through Numerical Analysis</em><br>
+          Supervisor: Dr. Mohammad Masud, Professor, ME Department
+        </div>
+        <div class="badges">
+          <span class="badge badge-g">Dean's Award 2021–22</span>
+          <span class="badge badge-b">CFD Thesis</span>
+          <span class="badge badge-b">Govt. Scholarship</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="edu-card sr">
+      <div class="edu-yr"><span class="edu-yr-txt">2017 – 2019</span></div>
+      <div class="edu-body">
+        <div class="edu-degree">Higher Secondary Certificate (HSC)</div>
+        <div class="edu-school">Dhaka Residential Model College · Dhaka, Bangladesh</div>
+        <div class="edu-det"><strong style="color:var(--c-text)">GPA: 5.00 / 5.00</strong> — Science Group</div>
+        <div class="badges"><span class="badge badge-g">HSC Govt. Scholarship 2019</span></div>
+      </div>
+    </div>
+
+    <div class="edu-card sr">
+      <div class="edu-yr"><span class="edu-yr-txt">2015 – 2017</span></div>
+      <div class="edu-body">
+        <div class="edu-degree">Secondary School Certificate (SSC)</div>
+        <div class="edu-school">BPATC School &amp; College · Bangladesh</div>
+        <div class="edu-det"><strong style="color:var(--c-text)">GPA: 5.00 / 5.00</strong> — Science Group</div>
+        <div class="badges"><span class="badge badge-g">SSC Govt. Scholarship</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE ─────────────────────────── -->
+<section id="experience">
+  <div class="sec-row sr"><span class="sec-index">03</span><span class="sec-tick"></span><span class="sec-label">Experience</span></div>
+  <h2 class="sr">Work &amp; <em>Industry</em></h2>
+
+  <div class="exp-tl">
+
+    <div class="exp-item sr">
+      <div class="exp-node"></div>
+      <div class="exp-period">2025 – 2026 &nbsp;·&nbsp; Remote</div>
+      <div class="exp-role">LLM Engineer — Prompt Engineering &amp; Model Evaluation</div>
+      <div class="exp-co">Scale AI</div>
+      <ul class="exp-ul">
+        <li>Designed and refined prompts for large language models to improve response accuracy, instruction-following, and safety alignment across diverse task categories.</li>
+        <li>Evaluated model outputs against quality rubrics, providing structured feedback used in Reinforcement Learning from Human Feedback (RLHF) training pipelines.</li>
+        <li>Identified failure modes, hallucinations, and reasoning errors in LLM responses; documented findings to guide model improvement cycles.</li>
+        <li>Collaborated with cross-functional AI teams to benchmark prompt strategies and assess model performance across engineering and technical domains.</li>
+        <li>Applied mechanical engineering expertise to evaluate STEM-related model responses for factual accuracy and technical correctness.</li>
+      </ul>
+    </div>
+
+    <div class="exp-item sr">
+      <div class="exp-node blue"></div>
+      <div class="exp-period blue">March 2024 &nbsp;·&nbsp; Dhaka</div>
+      <div class="exp-role">Industrial Attachment Trainee</div>
+      <div class="exp-co">United Power Generation &amp; Distribution Company Ltd.</div>
+      <ul class="exp-ul">
+        <li>Gained hands-on exposure to large-scale power generation equipment including diesel engines, generators, and step-up transformers.</li>
+        <li>Observed operation and maintenance of HVAC systems and electrical switchgear in an industrial power plant setting.</li>
+        <li>Studied the complete workflow from power generation through transmission to distribution.</li>
+      </ul>
+    </div>
+
+    <div class="exp-item sr">
+      <div class="exp-node blue"></div>
+      <div class="exp-period blue">June 2023 &nbsp;·&nbsp; Khulna</div>
+      <div class="exp-role">Industrial Attachment Trainee</div>
+      <div class="exp-co">Hamko Battery Industries Ltd.</div>
+      <ul class="exp-ul">
+        <li>Studied the end-to-end battery production process from raw material procurement to quality-checked finished product delivery.</li>
+        <li>Observed manufacturing processes including paste mixing, plate formation, assembly, and electrolyte filling.</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- RESEARCH ─────────────────────────── -->
+<section id="research">
+  <div class="sec-row sr"><span class="sec-index">04</span><span class="sec-tick"></span><span class="sec-label">Publications</span></div>
+  <h2 class="sr">Research &amp; <em>Papers</em></h2>
+
+  <div class="pub-table sr">
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">01</div></div>
+      <div class="pub-body">
+        <div class="pub-title"><strong>A. T. Washi</strong>, K. K. Das, T. Nath, J. P. Das, K.M.T. Tahmid, F. Shahoriar — "Analyzing the Aerodynamic Impact of Tall Buildings through Numerical Analysis"</div>
+        <div class="pub-venue">ICMEAS 2025 · 3rd Int. Conference on Mechanical Engineering and Applied Sciences <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">02</div></div>
+      <div class="pub-body">
+        <div class="pub-title">T. H. Anto, F. Shahoriar, S. Mahmud, <strong>A. T. Washi</strong>, T. Nath, K.M.T. Tahmid — "Aerodynamic Analysis of a Modified NASA SC(2)-0414 Airfoil with Trailing-Edge Enhancement Under Transonic Flow Conditions"</div>
+        <div class="pub-venue">ICMEAS 2025 <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">03</div></div>
+      <div class="pub-body">
+        <div class="pub-title">T. Nath, <strong>A. T. Washi</strong>, K.M.T. Tahmid, K. K. Das, J. P. Das, T. H. Anto — "Investigating Hemodynamic Changes in a Stenosed Artery with Varying Eccentricity Using Nano-fluid Simulation"</div>
+        <div class="pub-venue">ICMEAS 2025 <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">04</div></div>
+      <div class="pub-body">
+        <div class="pub-title">J. P. Das, K.M.T. Tahmid, T. Nath, <strong>A. T. Washi</strong> — "Optimizing Pin-Fin Heat Sinks Automatically Using MATLAB-Based Computational Fluid Dynamics and Genetic Algorithms"</div>
+        <div class="pub-venue">ICMEAS 2025 <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">05</div></div>
+      <div class="pub-body">
+        <div class="pub-title">K.M.T. Tahmid, J. P. Das, T. Nath, K. K. Das, <strong>A. T. Washi</strong>, S. Mahmud — "Numerical Investigation of Heat Transfer Performance in a Shell and Tube Heat Exchanger Using Twisted Tube and Hybrid Nano-Fluid"</div>
+        <div class="pub-venue">ICMEAS 2025 <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+    <div class="pub-row">
+      <div class="pub-idx"><div class="pub-idx-n">06</div></div>
+      <div class="pub-body">
+        <div class="pub-title">K. K. Das, T. Nath, <strong>A. T. Washi</strong>, K.M.T. Tahmid — "Comparative Study Between NACA 2412 and NACA 4412: A CFD Approach"</div>
+        <div class="pub-venue">ICMEAS 2025 <span class="chip">Accepted</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS ─────────────────────────── -->
+<section id="skills">
+  <div class="sec-row sr"><span class="sec-index">05</span><span class="sec-tick"></span><span class="sec-label">Skills</span></div>
+  <h2 class="sr">Technical <em>Expertise</em></h2>
+
+  <div class="skills-grid">
+    <div class="skill-card sr">
+      <div class="sk-head">Simulation &amp; Design</div>
+      <div class="sk-row"><span class="sk-name">ANSYS Fluent</span><div class="sk-track"><div class="sk-bar" data-w="92"></div></div></div>
+      <div class="sk-row"><span class="sk-name">SolidWorks</span><div class="sk-track"><div class="sk-bar" data-w="85"></div></div></div>
+      <div class="sk-row"><span class="sk-name">AutoCAD</span><div class="sk-track"><div class="sk-bar" data-w="80"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Origin Pro</span><div class="sk-track"><div class="sk-bar" data-w="75"></div></div></div>
+    </div>
+    <div class="skill-card sr">
+      <div class="sk-head">Programming</div>
+      <div class="sk-row"><span class="sk-name">Python</span><div class="sk-track"><div class="sk-bar" data-w="78"></div></div></div>
+      <div class="sk-row"><span class="sk-name">MATLAB</span><div class="sk-track"><div class="sk-bar" data-w="72"></div></div></div>
+      <div class="sk-row"><span class="sk-name">C</span><div class="sk-track"><div class="sk-bar" data-w="65"></div></div></div>
+      <div class="sk-row"><span class="sk-name">MS Office</span><div class="sk-track"><div class="sk-bar" data-w="90"></div></div></div>
+    </div>
+    <div class="skill-card sr">
+      <div class="sk-head">Engineering Core</div>
+      <div class="sk-row"><span class="sk-name">CFD Analysis</span><div class="sk-track"><div class="sk-bar" data-w="90"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Thermodynamics</span><div class="sk-track"><div class="sk-bar" data-w="85"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Heat Transfer</span><div class="sk-track"><div class="sk-bar" data-w="82"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Fluid Mechanics</span><div class="sk-track"><div class="sk-bar" data-w="88"></div></div></div>
+    </div>
+    <div class="skill-card sr">
+      <div class="sk-head">AI &amp; LLM</div>
+      <div class="sk-row"><span class="sk-name">Prompt Eng.</span><div class="sk-track"><div class="sk-bar" data-w="88"></div></div></div>
+      <div class="sk-row"><span class="sk-name">RLHF Evaluation</span><div class="sk-track"><div class="sk-bar" data-w="85"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Benchmarking</span><div class="sk-track"><div class="sk-bar" data-w="80"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Failure Analysis</span><div class="sk-track"><div class="sk-bar" data-w="82"></div></div></div>
+    </div>
+    <div class="skill-card sr">
+      <div class="sk-head">Industry</div>
+      <div class="sk-row"><span class="sk-name">Power Generation</span><div class="sk-track"><div class="sk-bar" data-w="70"></div></div></div>
+      <div class="sk-row"><span class="sk-name">HVAC Systems</span><div class="sk-track"><div class="sk-bar" data-w="68"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Battery Mfg.</span><div class="sk-track"><div class="sk-bar" data-w="65"></div></div></div>
+      <div class="sk-row"><span class="sk-name">UTM Testing</span><div class="sk-track"><div class="sk-bar" data-w="72"></div></div></div>
+    </div>
+    <div class="skill-card sr">
+      <div class="sk-head">Professional</div>
+      <div class="sk-row"><span class="sk-name">Research Writing</span><div class="sk-track"><div class="sk-bar" data-w="88"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Critical Thinking</span><div class="sk-track"><div class="sk-bar" data-w="92"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Team Leadership</span><div class="sk-track"><div class="sk-bar" data-w="85"></div></div></div>
+      <div class="sk-row"><span class="sk-name">Communication</span><div class="sk-track"><div class="sk-bar" data-w="88"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LEADERSHIP ─────────────────────────── -->
+<section id="leadership">
+  <div class="sec-row sr"><span class="sec-index">06</span><span class="sec-tick"></span><span class="sec-label">Leadership</span></div>
+  <h2 class="sr">Extracurricular <em>Activities</em></h2>
+
+  <div class="lead-grid">
+    <div class="lead-card sr"><div class="lead-icon">🏛️</div><div class="lead-role">Vice President</div><div class="lead-org">Ramians Association of KUET</div></div>
+    <div class="lead-card sr"><div class="lead-icon">🤖</div><div class="lead-role">Event Coordinator</div><div class="lead-org">LOOP — Robotics Control Club, KUET</div></div>
+    <div class="lead-card sr"><div class="lead-icon">⚙️</div><div class="lead-role">Organizing Member</div><div class="lead-org">Ignition 2023 — National Mechanical Festival</div></div>
+    <div class="lead-card sr"><div class="lead-icon">🏠</div><div class="lead-role">Core Committee</div><div class="lead-org">Shaheed Smrity Hall, KUET</div></div>
+    <div class="lead-card sr"><div class="lead-icon">🩸</div><div class="lead-role">Voluntary Member</div><div class="lead-org">DREAM — Blood Donation Club, KUET</div></div>
+    <div class="lead-card sr"><div class="lead-icon">📐</div><div class="lead-role">CAD Certification</div><div class="lead-org">EDGE Program — BCC, ICT Division</div></div>
+  </div>
+</section>
+
+<!-- CONTACT ─────────────────────────── -->
+<section id="contact">
+  <div class="sr">
+    <h2 class="con-head">Let's <em>Connect</em></h2>
+    <p class="con-sub">Open for research collaborations · engineering roles · AI opportunities</p>
+  </div>
+
+  <div class="con-grid sr">
+    <a href="mailto:atwashi123@gmail.com" class="con-card">
+      <span class="con-icon">✉️</span>
+      <div class="con-lbl">Email</div>
+      <div class="con-val">atwashi123@gmail.com</div>
+    </a>
+    <a href="https://wa.me/8801781455008" target="_blank" class="con-card">
+      <span class="con-icon">💬</span>
+      <div class="con-lbl">WhatsApp</div>
+      <div class="con-val">+880 1781 455 008</div>
+    </a>
+    <a href="https://www.linkedin.com/in/abrar-tasnim-washi-5690a9311/" target="_blank" class="con-card">
+      <span class="con-icon">🔗</span>
+      <div class="con-lbl">LinkedIn</div>
+      <div class="con-val">Abrar Tasnim Washi</div>
+    </a>
+    <a href="https://www.facebook.com/share/1YZFnZrBV5/" target="_blank" class="con-card">
+      <span class="con-icon">📘</span>
+      <div class="con-lbl">Facebook</div>
+      <div class="con-val">Social Network</div>
+    </a>
+    <a href="https://amrito20.github.io/Abrar-Tasnim-Washi/" target="_blank" class="con-card">
+      <span class="con-icon">🌐</span>
+      <div class="con-lbl">Portfolio</div>
+      <div class="con-val">GitHub Pages</div>
+    </a>
+    <a href="https://maps.google.com/?q=Bara+Moghbazar+Dhaka+Bangladesh" target="_blank" class="con-card">
+      <span class="con-icon">📍</span>
+      <div class="con-lbl">Location</div>
+      <div class="con-val">Dhaka, Bangladesh</div>
+    </a>
+  </div>
+
+  <div class="ref-txt sr">
+    References: Dr. Mohammad Masud — mdmashud@yahoo.com &nbsp;·&nbsp; Dr. Mohammad Ilias Inam — iliasinam@me.kuet.ac.bd
+  </div>
+</section>
+
+<!-- FOOTER ─────────────────────────── -->
+<footer>
+  <div class="foot-l">© 2025 Abrar Tasnim Washi · Mechanical Engineer, KUET</div>
+  <div class="foot-r">Dhaka, Bangladesh</div>
+</footer>
+
+<div id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
+
+<!-- ═══════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════ -->
+<script>
+/* ─── PARTICLE CANVAS ─── */
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize(){
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function mkParticle(){
+    return {
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*.8 + .2,
+      vx:(Math.random()-.5)*.18,
+      vy:(Math.random()-.5)*.18,
+      a: Math.random()*.5 + .1
+    };
+  }
+  for(let i=0;i<110;i++) particles.push(mkParticle());
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(63,255,200,${p.a})`;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+    });
+
+    /* faint connecting lines */
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x;
+        const dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<110){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(63,255,200,${.06*(1-d/110)})`;
+          ctx.lineWidth=.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ─── CUSTOM CURSOR ─── */
+(function(){
+  const dot = document.getElementById('cur-dot');
+  const ring = document.getElementById('cur-ring');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY;
+    dot.style.left=mx+'px'; dot.style.top=my+'px'; });
+  (function animRing(){
+    rx += (mx-rx)*.13; ry += (my-ry)*.13;
+    ring.style.left=rx+'px'; ring.style.top=ry+'px';
+    requestAnimationFrame(animRing);
+  })();
+  document.querySelectorAll('a, button, [onclick], .tag, .lead-card, .skill-card').forEach(el=>{
+    el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+    el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+  });
+})();
+
+/* ─── TYPING EFFECT ─── */
+(function(){
+  const el = document.getElementById('typed-el');
+  const phrases = ['Mechanical Engineer','CFD Researcher','LLM Engineer','ANSYS Expert','Published Researcher'];
+  let pi=0, ci=0, deleting=false;
+  function tick(){
+    const cur = phrases[pi];
+    if(!deleting){ el.textContent=cur.slice(0,++ci); if(ci===cur.length){deleting=true;setTimeout(tick,1900);return;} }
+    else { el.textContent=cur.slice(0,--ci); if(ci===0){deleting=false;pi=(pi+1)%phrases.length;} }
+    setTimeout(tick,deleting?55:100);
+  }
+  tick();
+})();
+
+/* ─── NAV STUCK + ACTIVE ─── */
+(function(){
+  const nav = document.getElementById('nav');
+  const links = document.querySelectorAll('.nav-links a');
+  const secs  = document.querySelectorAll('section[id]');
+  const btn   = document.getElementById('back-top');
+
+  window.addEventListener('scroll',()=>{
+    nav.classList.toggle('stuck', scrollY>40);
+    btn.classList.toggle('show', scrollY>500);
+    let cur='';
+    secs.forEach(s=>{ if(scrollY >= s.offsetTop-200) cur=s.id; });
+    links.forEach(l=>l.classList.toggle('active', l.getAttribute('href')==='#'+cur));
+  });
+})();
+
+/* ─── SCROLL REVEAL ─── */
+(function(){
+  /* stagger siblings in grid containers */
+  document.querySelectorAll('.skills-grid,.lead-grid,.con-grid,.edu-list,.pub-table').forEach(g=>{
+    [...g.querySelectorAll('.sr')].forEach((el,i)=>el.style.transitionDelay=`${i*80}ms`);
+  });
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); } });
+  },{threshold:.08,rootMargin:'0px 0px -30px 0px'});
+  document.querySelectorAll('.sr').forEach(el=>obs.observe(el));
+})();
+
+/* ─── SKILL BAR ANIMATION ─── */
+(function(){
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.querySelectorAll('.sk-bar').forEach(b=>{b.style.width=b.dataset.w+'%';});
+        obs.unobserve(e.target);
+      }
+    });
+  },{threshold:.3});
+  document.querySelectorAll('.skill-card').forEach(c=>obs.observe(c));
+})();
+
+/* ─── PARALLAX ORBS ON MOUSEMOVE ─── */
+document.addEventListener('mousemove',e=>{
+  const x=(e.clientX/innerWidth-.5)*24;
+  const y=(e.clientY/innerHeight-.5)*24;
+  document.querySelectorAll('.orb').forEach((o,i)=>{
+    const f=(i+1)*.38;
+    o.style.transform=`translate(${x*f}px,${y*f}px)`;
+  });
+});
+</script>
+
+</body>
+</html>
